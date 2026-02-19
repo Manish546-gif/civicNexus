@@ -1,0 +1,156 @@
+import { NavLink, useNavigate } from 'react-router-dom'
+import {
+    LayoutDashboard, Users, MessageCircle, FileText,
+    Gamepad2, Zap, Trophy, Award, BarChart3,
+    User, Settings, ShieldCheck, Flame, LogOut
+} from 'lucide-react'
+import { useAuth } from '../context/AuthContext'
+
+const navItems = [
+    { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
+    { icon: Users, label: 'Communities', path: '/communities' },
+    { icon: MessageCircle, label: 'Chat', path: '/chat' },
+    { icon: FileText, label: 'Forums', path: '/forums' },
+    { icon: Gamepad2, label: 'Games', path: '/games' },
+    { icon: Zap, label: 'Challenges', path: '/challenges' },
+    { icon: Trophy, label: 'Leaderboard', path: '/leaderboard' },
+    { icon: Award, label: 'Achievements', path: '/achievements' },
+    { icon: BarChart3, label: 'Analytics', path: '/analytics' },
+    { icon: ShieldCheck, label: 'Admin Panel', path: '/admin', adminOnly: true },
+]
+
+export default function Sidebar() {
+    const { user, logout } = useAuth()
+    const navigate = useNavigate()
+
+    const handleLogout = () => {
+        logout()
+        navigate('/login')
+    }
+
+    const filteredNavItems = navItems.filter(item => !item.adminOnly || (user && user.role === 'admin'))
+
+    return (
+        <aside style={{
+            width: '260px',
+            height: '100vh',
+            display: 'flex',
+            flexDirection: 'column',
+            background: 'rgba(255, 255, 255, 0.8)',
+            backdropFilter: 'blur(20px)',
+            borderRight: '1px solid rgba(0, 0, 0, 0.05)',
+            zIndex: 50,
+            position: 'relative',
+        }}>
+            {/* Logo */}
+            <div style={{ padding: '24px', borderBottom: '1px solid rgba(0, 0, 0, 0.05)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div style={{
+                        width: '40px', height: '40px',
+                        background: '#000',
+                        borderRadius: '12px',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                    }}>
+                        <Zap size={20} color="white" fill="white" />
+                    </div>
+                    <div>
+                        <div style={{ fontWeight: 900, fontSize: '18px', letterSpacing: '-0.5px', color: '#000', lineHeight: 1 }}>HUB</div>
+                        <div style={{ fontSize: '10px', color: 'rgba(0, 0, 0, 0.4)', fontWeight: 700, letterSpacing: '0.1em' }}>COMMUNITY</div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Nav Items */}
+            <nav style={{ flex: 1, overflowY: 'auto', padding: '16px 12px' }}>
+                {filteredNavItems.map(({ icon: Icon, label, path }) => (
+                    <NavLink
+                        key={path}
+                        to={path}
+                        style={({ isActive }) => ({
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '12px',
+                            padding: '10px 16px',
+                            borderRadius: '12px',
+                            marginBottom: '4px',
+                            textDecoration: 'none',
+                            fontSize: '14px',
+                            fontWeight: 600,
+                            color: isActive ? '#000' : 'rgba(0, 0, 0, 0.5)',
+                            background: isActive ? 'rgba(0, 0, 0, 0.05)' : 'transparent',
+                            transition: 'all 0.2s ease',
+                        })}
+                    >
+                        <Icon size={18} />
+                        {label}
+                    </NavLink>
+                ))}
+            </nav>
+
+            {/* Footer / User */}
+            <div style={{ padding: '16px', borderTop: '1px solid rgba(0, 0, 0, 0.05)' }}>
+                <div style={{
+                    padding: '12px',
+                    borderRadius: '16px',
+                    background: 'rgba(0, 0, 0, 0.03)',
+                    border: '1px solid rgba(0, 0, 0, 0.05)',
+                    marginBottom: '12px'
+                }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+                        <div style={{
+                            width: '36px', height: '36px',
+                            borderRadius: '50%', background: '#000',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            color: '#fff', fontWeight: 800, fontSize: '14px'
+                        }}>{user?.name?.charAt(0) || 'U'}</div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontWeight: 700, fontSize: '13px', color: '#000', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                {user?.name || 'Explorer'}
+                            </div>
+                            <div style={{ fontSize: '10px', color: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981' }} />
+                                Level {Math.floor((user?.xp || 0) / 500) + 1}
+                            </div>
+                        </div>
+                    </div>
+                    <div style={{ height: '5px', background: 'rgba(0,0,0,0.05)', borderRadius: '99px', overflow: 'hidden' }}>
+                        <div style={{ width: `${(user?.xp % 500) / 5}%`, height: '100%', background: '#000', borderRadius: '99px' }} />
+                    </div>
+                </div>
+
+                <button
+                    onClick={handleLogout}
+                    style={{
+                        width: '100%',
+                        padding: '12px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '10px',
+                        background: 'rgba(0,0,0,0.04)',
+                        border: '1px solid rgba(0,0,0,0.06)',
+                        borderRadius: '12px',
+                        color: 'rgba(0,0,0,0.6)',
+                        fontSize: '13px',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        transition: 'all 0.2s'
+                    }}
+                    onMouseEnter={e => {
+                        e.currentTarget.style.background = 'rgba(239, 68, 68, 0.05)'
+                        e.currentTarget.style.color = '#ef4444'
+                        e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.1)'
+                    }}
+                    onMouseLeave={e => {
+                        e.currentTarget.style.background = 'rgba(0,0,0,0.04)'
+                        e.currentTarget.style.color = 'rgba(0,0,0,0.6)'
+                        e.currentTarget.style.borderColor = 'rgba(0,0,0,0.06)'
+                    }}
+                >
+                    <LogOut size={16} /> Logout Protocol
+                </button>
+            </div>
+        </aside>
+    )
+}
