@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Globe, ArrowRight, GraduationCap, Building2, Leaf, Code2 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
+import { GoogleLogin } from '@react-oauth/google'
 
 const roles = [
     { id: 'user', icon: Code2, label: 'Developer / Explorer' }, // Standardized to 'user' for simplicity
@@ -139,7 +140,7 @@ export default function Register() {
                                 <p style={{ fontSize: '14px', color: 'rgba(0,0,0,0.5)', marginBottom: '24px', textAlign: 'center', lineHeight: 1.5, fontWeight: 500 }}>
                                     Your interface and challenge feed will be optimized for your selected specialization.
                                 </p>
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '24px' }}>
                                     {roles.map(r => (
                                         <button
                                             key={r.id} type="button"
@@ -160,8 +161,35 @@ export default function Register() {
                                         </button>
                                     ))}
                                 </div>
-                            </div>
-                        )}
+                                <div style={{ margin: '32px 0 24px', borderTop: '1px solid rgba(0,0,0,0.06)', position: 'relative' }}>
+                                    <span style={{
+                                        position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+                                        background: '#fff', padding: '0 16px', fontSize: '11px', color: 'rgba(0,0,0,0.2)', fontWeight: 950,
+                                        textTransform: 'uppercase', letterSpacing: '0.1em'
+                                    }}>Or initialize instantly</span>
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'center' }}>
+                                    <GoogleLogin
+                                        onSuccess={async (credentialResponse) => {
+                                            setError('')
+                                            setLoading(true)
+                                            try {
+                                                await useAuth().googleLogin(credentialResponse.credential)
+                                                navigate('/dashboard')
+                                            } catch (err) {
+                                                setError(err.response?.data?.message || 'Google registration failed.')
+                                            } finally {
+                                                setLoading(false)
+                                            }
+                                        }}
+                                        onError={() => setError('Google Authentication Failed')}
+                                        theme="outline"
+                                        size="large"
+                                        shape="pill"
+                                        width="100%"
+                                    />
+                                </div>
+                            </div>)}
 
                         {error && (
                             <div style={{
