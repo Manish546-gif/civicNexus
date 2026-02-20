@@ -31,7 +31,11 @@ import User from './models/User.js';
 import Community from './models/Community.js';
 import Lobby from './models/Lobby.js';
 
-app.use(cors());
+app.use(cors({
+    origin: 'https://civicnexus.vercel.app',
+    methods: ['GET', 'POST'],
+    credentials: true
+}));
 app.use(express.json());
 
 app.use('/api/auth', authRoutes);
