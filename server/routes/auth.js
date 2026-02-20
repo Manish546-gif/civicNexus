@@ -50,22 +50,29 @@ router.post('/google', async (req, res) => {
 });
 
 router.post('/register', async (req, res) => {
-    const { name, email, password, role } = req.body;
+    const { name, username, email, password, role } = req.body;
     try {
         const userExists = await User.findOne({ email });
-        if (userExists) return res.status(400).json({ message: 'User already exists' });
+        if (userExists) return res.status(400).json({ message: 'User already exists.' });
+
+        if (username) {
+            const usernameExists = await User.findOne({ username });
+            if (usernameExists) return res.status(400).json({ message: 'Username is already taken.' });
+        }
 
         const user = await User.create({
             name,
+            username: username || undefined,
             email,
             password,
             role: role || 'user'
         });
 
-        const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET || 'secret', { expiresIn: '1d' });
-        res.status(201).json({ token, user: { id: user._id, name: user.name, role: user.role, xp: user.xp } });
+        const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET || 'secret', { expiresIn: '7d' });
+        res.status(201).json({ token, user: { id: user._id, name: user.name, username: user.username, email: user.email, role: user.role, xp: user.xp } });
     } catch (err) {
-        res.status(500).json({ message: 'Server error' });
+        console.error('Register error:', err);
+        res.status(500).json({ message: err.message || 'Server error during registration.' });
     }
 });
 

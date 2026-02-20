@@ -20,6 +20,17 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 
+// System Stats Cache
+let activeUsers = new Set();
+
+app.get('/api/admin/system-stats', (req, res) => {
+    res.json({
+        liveUsers: activeUsers.size,
+        uptime: process.uptime(),
+        memory: process.memoryUsage().heapUsed
+    });
+});
+
 // MongoDB Connection
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/community_platform')
     .then(() => console.log('Connected to MongoDB'))
@@ -27,10 +38,14 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/community
 
 // Socket.io Real-time Logic
 io.on('connection', (socket) => {
-    console.log('A user connected:', socket.id);
+    activeUsers.add(socket.id);
+    console.log('A user connected:', socket.id, '| Live:', activeUsers.size);
+    io.emit('stats_update', { liveUsers: activeUsers.size });
 
     socket.on('disconnect', () => {
-        console.log('User disconnected:', socket.id);
+        activeUsers.delete(socket.id);
+        console.log('User disconnected:', socket.id, '| Live:', activeUsers.size);
+        io.emit('stats_update', { liveUsers: activeUsers.size });
     });
 });
 

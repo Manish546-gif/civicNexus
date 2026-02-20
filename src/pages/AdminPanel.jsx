@@ -1,4 +1,3 @@
-import { useState, useEffect } from 'react'
 import {
     Users, ShieldAlert, FilePlus, BarChart3,
     UserX, CheckCircle2, AlertTriangle, Trash2,
@@ -6,6 +5,7 @@ import {
 } from 'lucide-react'
 import Analytics from './Analytics'
 import axios from 'axios'
+import Skeleton from '../components/Skeleton'
 
 export default function AdminPanel() {
     const [activeTab, setActiveTab] = useState('Overview')
@@ -119,33 +119,42 @@ export default function AdminPanel() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
                     {/* Stats Grid */}
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px' }}>
-                        {[
-                            { label: 'Network Reach', value: (users.length * 128).toLocaleString(), highlight: '+12.4%', icon: Users },
-                            { label: 'Active Hubs', value: '42', highlight: 'Stable', icon: Activity },
-                            { label: 'Collective Score', value: '84.2', highlight: 'Premium', icon: BarChart3 },
-                            { label: 'Uptime Protocol', value: '99.9%', highlight: 'Active', icon: ShieldCheck },
-                        ].map(stat => (
-                            <div key={stat.label} style={{
-                                padding: '32px 24px', borderRadius: '28px', background: 'rgba(255,255,255,0.7)',
-                                border: '1px solid rgba(0,0,0,0.05)', backdropFilter: 'blur(20px)',
-                                boxShadow: '0 8px 32px rgba(0,0,0,0.02)',
-                                transition: 'transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
-                            }}
-                                onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-4px)'}
-                                onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
-                            >
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                                    <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'rgba(0,0,0,0.04)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                        <stat.icon size={20} color="#000" strokeWidth={2.5} />
+                        {loading ? (
+                            <>
+                                <Skeleton.Base className="h-40 rounded-[28px]" />
+                                <Skeleton.Base className="h-40 rounded-[28px]" />
+                                <Skeleton.Base className="h-40 rounded-[28px]" />
+                                <Skeleton.Base className="h-40 rounded-[28px]" />
+                            </>
+                        ) : (
+                            [
+                                { label: 'Network Reach', value: (users.length * 128).toLocaleString(), highlight: '+12.4%', icon: Users },
+                                { label: 'Active Hubs', value: '42', highlight: 'Stable', icon: Activity },
+                                { label: 'Collective Score', value: '84.2', highlight: 'Premium', icon: BarChart3 },
+                                { label: 'Uptime Protocol', value: '99.9%', highlight: 'Active', icon: ShieldCheck },
+                            ].map(stat => (
+                                <div key={stat.label} style={{
+                                    padding: '32px 24px', borderRadius: '28px', background: 'rgba(255,255,255,0.7)',
+                                    border: '1px solid rgba(0,0,0,0.05)', backdropFilter: 'blur(20px)',
+                                    boxShadow: '0 8px 32px rgba(0,0,0,0.02)',
+                                    transition: 'transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
+                                }}
+                                    onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-4px)'}
+                                    onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
+                                >
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                                        <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'rgba(0,0,0,0.04)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                            <stat.icon size={20} color="#000" strokeWidth={2.5} />
+                                        </div>
+                                        <div style={{ fontSize: '11px', color: '#10b981', fontWeight: 900, background: 'rgba(16,185,129,0.1)', padding: '4px 10px', borderRadius: '8px' }}>
+                                            {stat.highlight}
+                                        </div>
                                     </div>
-                                    <div style={{ fontSize: '11px', color: '#10b981', fontWeight: 900, background: 'rgba(16,185,129,0.1)', padding: '4px 10px', borderRadius: '8px' }}>
-                                        {stat.highlight}
-                                    </div>
+                                    <div style={{ fontSize: '36px', fontWeight: 950, color: '#000', marginBottom: '4px', letterSpacing: '-1.5px' }}>{stat.value}</div>
+                                    <div style={{ fontSize: '11px', color: 'rgba(0,0,0,0.3)', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em' }}>{stat.label}</div>
                                 </div>
-                                <div style={{ fontSize: '36px', fontWeight: 950, color: '#000', marginBottom: '4px', letterSpacing: '-1.5px' }}>{stat.value}</div>
-                                <div style={{ fontSize: '11px', color: 'rgba(0,0,0,0.3)', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em' }}>{stat.label}</div>
-                            </div>
-                        ))}
+                            ))
+                        )}
                     </div>
 
                     {/* Extended Analytics View */}
@@ -164,7 +173,7 @@ export default function AdminPanel() {
                                 LIVE FEED
                             </div>
                         </div>
-                        <Analytics />
+                        {loading ? <Skeleton.Base className="h-[400px] w-full rounded-2xl" /> : <Analytics />}
                     </div>
                 </div>
             )}
@@ -197,58 +206,68 @@ export default function AdminPanel() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {users.map(u => (
-                                    <tr key={u.id || u._id} style={{
-                                        background: 'rgba(0,0,0,0.015)',
-                                        transition: 'all 0.2s',
-                                        cursor: 'pointer'
-                                    }}
-                                        onMouseEnter={e => e.currentTarget.style.background = 'white'}
-                                        onMouseLeave={e => e.currentTarget.style.background = 'rgba(0,0,0,0.015)'}
-                                    >
-                                        <td style={{ padding: '20px', borderRadius: '16px 0 0 16px', border: '1px solid rgba(0,0,0,0.02)', borderRight: 'none' }}>
-                                            <div style={{ fontWeight: 900, fontSize: '15px', color: '#000' }}>{u.name}</div>
-                                            <div style={{ fontSize: '12px', color: 'rgba(0,0,0,0.4)', fontWeight: 700 }}>{u.email.toUpperCase()}</div>
-                                        </td>
-                                        <td style={{ padding: '20px', borderTop: '1px solid rgba(0,0,0,0.02)', borderBottom: '1px solid rgba(0,0,0,0.02)' }}>
-                                            <span style={{
-                                                padding: '6px 12px', borderRadius: '10px', fontSize: '11px', fontWeight: 950,
-                                                background: !u.isBlocked ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-                                                color: !u.isBlocked ? '#10b981' : '#ef4444',
-                                                textTransform: 'uppercase', letterSpacing: '0.05em'
-                                            }}>{!u.isBlocked ? 'AUTHORIZED' : 'ACCESS REVOKED'}</span>
-                                        </td>
-                                        <td style={{ padding: '20px', fontSize: '13px', fontWeight: 900, color: 'rgba(0,0,0,0.6)', borderTop: '1px solid rgba(0,0,0,0.02)', borderBottom: '1px solid rgba(0,0,0,0.02)' }}>
-                                            {u.role.toUpperCase()}
-                                        </td>
-                                        <td style={{ padding: '20px', fontWeight: 950, fontSize: '16px', borderTop: '1px solid rgba(0,0,0,0.02)', borderBottom: '1px solid rgba(0,0,0,0.02)' }}>
-                                            {u.xp.toLocaleString()}
-                                        </td>
-                                        <td style={{ padding: '20px', textAlign: 'right', borderRadius: '0 16px 16px 0', border: '1px solid rgba(0,0,0,0.02)', borderLeft: 'none' }}>
-                                            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                                                <button
-                                                    onClick={() => toggleBlock(u.id || u._id)}
-                                                    style={{
+                                {loading ? (
+                                    [...Array(5)].map((_, i) => (
+                                        <tr key={i}>
+                                            <td colSpan="5" style={{ padding: '8px 0' }}>
+                                                <Skeleton.Base className="h-16 w-full rounded-xl" />
+                                            </td>
+                                        </tr>
+                                    ))
+                                ) : (
+                                    users.map(u => (
+                                        <tr key={u.id || u._id} style={{
+                                            background: 'rgba(0,0,0,0.015)',
+                                            transition: 'all 0.2s',
+                                            cursor: 'pointer'
+                                        }}
+                                            onMouseEnter={e => e.currentTarget.style.background = 'white'}
+                                            onMouseLeave={e => e.currentTarget.style.background = 'rgba(0,0,0,0.015)'}
+                                        >
+                                            <td style={{ padding: '20px', borderRadius: '16px 0 0 16px', border: '1px solid rgba(0,0,0,0.02)', borderRight: 'none' }}>
+                                                <div style={{ fontWeight: 900, fontSize: '15px', color: '#000' }}>{u.name}</div>
+                                                <div style={{ fontSize: '12px', color: 'rgba(0,0,0,0.4)', fontWeight: 700 }}>{u.email.toUpperCase()}</div>
+                                            </td>
+                                            <td style={{ padding: '20px', borderTop: '1px solid rgba(0,0,0,0.02)', borderBottom: '1px solid rgba(0,0,0,0.02)' }}>
+                                                <span style={{
+                                                    padding: '6px 12px', borderRadius: '10px', fontSize: '11px', fontWeight: 950,
+                                                    background: !u.isBlocked ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                                                    color: !u.isBlocked ? '#10b981' : '#ef4444',
+                                                    textTransform: 'uppercase', letterSpacing: '0.05em'
+                                                }}>{!u.isBlocked ? 'AUTHORIZED' : 'ACCESS REVOKED'}</span>
+                                            </td>
+                                            <td style={{ padding: '20px', fontSize: '13px', fontWeight: 900, color: 'rgba(0,0,0,0.6)', borderTop: '1px solid rgba(0,0,0,0.02)', borderBottom: '1px solid rgba(0,0,0,0.02)' }}>
+                                                {u.role.toUpperCase()}
+                                            </td>
+                                            <td style={{ padding: '20px', fontWeight: 950, fontSize: '16px', borderTop: '1px solid rgba(0,0,0,0.02)', borderBottom: '1px solid rgba(0,0,0,0.02)' }}>
+                                                {u.xp.toLocaleString()}
+                                            </td>
+                                            <td style={{ padding: '20px', textAlign: 'right', borderRadius: '0 16px 16px 0', border: '1px solid rgba(0,0,0,0.02)', borderLeft: 'none' }}>
+                                                <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                                                    <button
+                                                        onClick={() => toggleBlock(u.id || u._id)}
+                                                        style={{
+                                                            width: '40px', height: '40px', borderRadius: '12px',
+                                                            background: 'white', border: '1px solid rgba(0,0,0,0.05)',
+                                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                            cursor: 'pointer', transition: 'all 0.2s',
+                                                            boxShadow: '0 4px 12px rgba(0,0,0,0.02)'
+                                                        }}
+                                                        title={u.isBlocked ? 'Authorize Access' : 'Revoke Access'}
+                                                    >
+                                                        <Ban size={18} color={u.isBlocked ? '#10b981' : '#ef4444'} />
+                                                    </button>
+                                                    <button style={{
                                                         width: '40px', height: '40px', borderRadius: '12px',
                                                         background: 'white', border: '1px solid rgba(0,0,0,0.05)',
                                                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                        cursor: 'pointer', transition: 'all 0.2s',
-                                                        boxShadow: '0 4px 12px rgba(0,0,0,0.02)'
-                                                    }}
-                                                    title={u.isBlocked ? 'Authorize Access' : 'Revoke Access'}
-                                                >
-                                                    <Ban size={18} color={u.isBlocked ? '#10b981' : '#ef4444'} />
-                                                </button>
-                                                <button style={{
-                                                    width: '40px', height: '40px', borderRadius: '12px',
-                                                    background: 'white', border: '1px solid rgba(0,0,0,0.05)',
-                                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                    cursor: 'pointer', boxShadow: '0 4px 12px rgba(0,0,0,0.02)'
-                                                }} title="Purge Record"><Trash2 size={18} color="rgba(0,0,0,0.3)" /></button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
+                                                        cursor: 'pointer', boxShadow: '0 4px 12px rgba(0,0,0,0.02)'
+                                                    }} title="Purge Record"><Trash2 size={18} color="rgba(0,0,0,0.3)" /></button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
                             </tbody>
                         </table>
                     </div>

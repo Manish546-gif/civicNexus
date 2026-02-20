@@ -15,8 +15,6 @@ const navItems = [
     { icon: Zap, label: 'Challenges', path: '/challenges' },
     { icon: Trophy, label: 'Leaderboard', path: '/leaderboard' },
     { icon: Award, label: 'Achievements', path: '/achievements' },
-    { icon: BarChart3, label: 'Analytics', path: '/analytics' },
-    { icon: ShieldCheck, label: 'Admin Panel', path: '/admin', adminOnly: true },
 ]
 
 export default function Sidebar() {

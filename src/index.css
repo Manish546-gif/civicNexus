@@ -136,6 +136,10 @@ body {
   }
 }
 
+.animate-shimmer {
+  animation: shimmer 1.5s infinite;
+}
+
 /* Streak flame animation */
 @keyframes flicker {
 

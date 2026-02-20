@@ -18,7 +18,12 @@ export default function Register() {
 
     const handleSubmit = async (e) => {
         e.preventDefault()
-        if (step === 1) { setStep(2); return }
+        if (step === 1) { setStep(2); setError(''); return }
+
+        if (!form.role) {
+            setError('Please select a role to continue.')
+            return
+        }
 
         setLoading(true)
         setError('')
@@ -26,8 +31,8 @@ export default function Register() {
             await register(form)
             navigate('/dashboard')
         } catch (err) {
-            setError(err.response?.data?.message || 'Registration failed. System override failed.')
-            setStep(1) // Go back to fix errors
+            // Stay on step 2, show the error — don't go back to step 1
+            setError(err.response?.data?.message || 'Registration failed. Please try again.')
         } finally {
             setLoading(false)
         }
@@ -158,17 +163,36 @@ export default function Register() {
                             </div>
                         )}
 
-                        <button type="submit" style={{
-                            width: '100%', padding: '16px', marginTop: '32px',
-                            background: 'black', color: 'white', border: 'none', borderRadius: '16px',
-                            fontWeight: 900, fontSize: '16px', cursor: 'pointer',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
-                            boxShadow: '0 8px 24px rgba(0,0,0,0.1)', transition: 'transform 0.2s',
-                        }}
-                            onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
+                        {error && (
+                            <div style={{
+                                fontSize: '13px', color: '#ef4444',
+                                background: 'rgba(239, 64, 64, 0.06)',
+                                padding: '12px 16px', borderRadius: '12px',
+                                fontWeight: 700, textAlign: 'center',
+                                border: '1px solid rgba(239, 64, 64, 0.12)',
+                                marginTop: '16px'
+                            }}>
+                                {error}
+                            </div>
+                        )}
+
+                        <button
+                            type="submit"
+                            disabled={loading || (step === 2 && !form.role)}
+                            style={{
+                                width: '100%', padding: '16px', marginTop: '16px',
+                                background: (step === 2 && !form.role) ? 'rgba(0,0,0,0.2)' : 'black',
+                                color: 'white', border: 'none', borderRadius: '16px',
+                                fontWeight: 900, fontSize: '16px',
+                                cursor: (loading || (step === 2 && !form.role)) ? 'not-allowed' : 'pointer',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
+                                boxShadow: '0 8px 24px rgba(0,0,0,0.1)', transition: 'all 0.2s',
+                            }}
+                            onMouseEnter={e => { if (!loading && form.role) e.currentTarget.style.transform = 'translateY(-2px)' }}
                             onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
                         >
-                            {step === 1 ? 'Continue' : 'Complete Registration'} <ArrowRight size={18} />
+                            {loading ? 'Creating Account...' : step === 1 ? 'Continue' : 'Complete Registration'}
+                            {!loading && <ArrowRight size={18} />}
                         </button>
                     </form>
                 </div>
