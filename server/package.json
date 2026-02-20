@@ -4,7 +4,11 @@
     "type": "module",
     "scripts": {
         "start": "node server.js",
-        "dev": "node --watch server.js"
+        "dev": "node --watch server.js",
+        "build": "echo \"Build complete - Node.js app ready for deployment\" && npm install",
+        "seed": "node scripts/seedAdmin.js",
+        "seed:all": "node seeds.js && node scripts/seedAdmin.js && node scripts/seedChallenges.js && node scripts/seedQuestions.js",
+        "prod": "NODE_ENV=production node server.js"
     },
     "dependencies": {
         "bcryptjs": "^3.0.3",
