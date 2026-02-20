@@ -2,7 +2,7 @@ import { NavLink, useNavigate, useLocation } from 'react-router-dom'
 import {
     LayoutDashboard, Users, MessageCircle, FileText,
     Gamepad2, Zap, Trophy, Award, BarChart3,
-    User, Settings, ShieldCheck, Flame, LogOut
+    User, Settings, ShieldCheck, Flame, LogOut, MessageSquare
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { io } from 'socket.io-client'
@@ -13,10 +13,16 @@ const navItems = [
     { icon: Users, label: 'Communities', path: '/communities' },
     { icon: MessageCircle, label: 'Chat', path: '/chat' },
     { icon: FileText, label: 'Forums', path: '/forums' },
-    { icon: Gamepad2, label: 'Games', path: '/games' },
+    { icon: Gamepad2, label: 'Arena', path: '/games' },
+    { icon: MessageSquare, label: 'Community Feed', path: '/feed' },
     { icon: Zap, label: 'Challenges', path: '/challenges' },
-    { icon: Trophy, label: 'Leaderboard', path: '/leaderboard' },
+    { icon: Trophy, label: 'Rankings', path: '/leaderboard' },
     { icon: Award, label: 'Achievements', path: '/achievements' },
+]
+
+const adminItems = [
+    { icon: ShieldCheck, label: 'Admin Terminal', path: '/admin-terminal' },
+    { icon: BarChart3, label: 'System Analytics', path: '/admin-terminal' }, // Analytics is a tab in AdminCentral
 ]
 
 export default function Sidebar() {
@@ -27,7 +33,7 @@ export default function Sidebar() {
     const [unreadCount, setUnreadCount] = useState(0)
 
     useEffect(() => {
-        const socket = io('http://localhost:5001', {
+        const socket = io(import.meta.env.VITE_API_BASE_URL, {
             transports: ['websocket'],
             forceNew: true
         })
@@ -55,7 +61,7 @@ export default function Sidebar() {
         navigate('/login')
     }
 
-    const filteredNavItems = navItems.filter(item => !item.adminOnly || (user && user.role === 'admin'))
+    const filteredNavItems = user?.role === 'admin' ? adminItems : navItems
 
     return (
         <aside style={{
@@ -146,13 +152,15 @@ export default function Sidebar() {
                                 {user?.name || 'Explorer'}
                             </div>
                             <div style={{ fontSize: '10px', color: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                Level {user?.level || 1} · {user?.rankName || 'Novice'}
+                                {user?.role === 'admin' ? 'System Administrator' : `Level ${user?.level || 1} · ${user?.rankName || 'Novice'}`}
                             </div>
                         </div>
                     </div>
-                    <div style={{ height: '5px', background: 'rgba(0,0,0,0.05)', borderRadius: '99px', overflow: 'hidden' }}>
-                        <div style={{ width: `${(user?.xp % 500) / 5}%`, height: '100%', background: '#000', borderRadius: '99px' }} />
-                    </div>
+                    {user?.role !== 'admin' && (
+                        <div style={{ height: '5px', background: 'rgba(0,0,0,0.05)', borderRadius: '99px', overflow: 'hidden' }}>
+                            <div style={{ width: `${(user?.xp % 500) / 5}%`, height: '100%', background: '#000', borderRadius: '99px' }} />
+                        </div>
+                    )}
                 </div>
 
                 <button

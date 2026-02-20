@@ -11,6 +11,11 @@ const userSchema = new mongoose.Schema({
     streak: { type: Number, default: 0 },
     badges: [{ type: String }],
     isBlocked: { type: Boolean, default: false },
+    currentActivity: { type: String, default: 'Offline' },
+    activityHistory: [{
+        description: String,
+        timestamp: { type: Date, default: Date.now }
+    }],
     createdAt: { type: Date, default: Date.now }
 });
 

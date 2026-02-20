@@ -51,21 +51,33 @@ router.post('/complete', protect, async (req, res) => {
 router.get('/lobbies', async (req, res) => {
     try {
         const lobbies = await Lobby.find().sort({ createdAt: -1 });
-        res.json(lobbies);
+        const roomUsers = req.app.get('roomUsers') || {};
+
+        const lobbiesWithStats = lobbies.map(lobby => {
+            const activeUsersInRoom = roomUsers[lobby.code] || [];
+            return {
+                ...lobby.toObject(),
+                currentPlayers: activeUsersInRoom.length
+            };
+        });
+
+        res.json(lobbiesWithStats);
     } catch (err) {
         res.status(500).json({ message: 'Server error fetching lobbies' });
     }
 });
 
 router.post('/lobbies', protect, async (req, res) => {
-    const { name, category, private: isPrivate } = req.body;
+    const { name, category, private: isPrivate, maxPlayers } = req.body;
     try {
         const code = Math.random().toString(36).substring(2, 8).toUpperCase();
         const lobby = await Lobby.create({
             name,
             host: req.user.name,
+            hostId: req.user.id,
             category,
             private: isPrivate,
+            maxPlayers: maxPlayers || 6,
             code,
             status: 'Waiting'
         });

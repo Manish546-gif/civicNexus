@@ -21,7 +21,7 @@ export default function Challenges() {
     useEffect(() => {
         const fetchChallenges = async () => {
             try {
-                const res = await axios.get('http://localhost:5001/api/challenges')
+                const res = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/challenges`)
                 setChallenges(res.data)
             } catch (err) {
                 console.error('Failed to fetch challenges', err)
@@ -34,10 +34,10 @@ export default function Challenges() {
 
     const handleComplete = async (id) => {
         try {
-            await axios.post(`http://localhost:5001/api/challenges/${id}/complete`)
+            await axios.post(`${import.meta.env.VITE_API_BASE_URL}/api/challenges/${id}/complete`)
             await refreshUser()
             // In a real app, we'd mark it locally or re-fetch
-            const res = await axios.get('http://localhost:5001/api/challenges')
+            const res = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/challenges`)
             setChallenges(res.data)
         } catch (err) {
             console.error('Error completing challenge', err)

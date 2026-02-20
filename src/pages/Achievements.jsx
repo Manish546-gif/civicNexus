@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Star, Lock, Zap, Flame, Trophy, Users, MessageCircle, Gamepad2, BarChart3, CheckCircle2 } from 'lucide-react'
+import { useAuth } from '../context/AuthContext'
 import Skeleton from '../components/Skeleton'
 
 const badges = [
@@ -33,15 +34,28 @@ const achievements = [
 ]
 
 export default function Achievements() {
+    const { user } = useAuth()
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
-        const timer = setTimeout(() => setLoading(false), 800)
+        const timer = setTimeout(() => setLoading(false), 500)
         return () => clearTimeout(timer)
     }, [])
 
-    const earned = badges.filter(b => b.earned)
-    const locked = badges.filter(b => !b.earned)
+    const earnedNames = user?.badges || []
+    const earned = badges.filter(b => earnedNames.includes(b.name))
+    const locked = badges.filter(b => !earnedNames.includes(b.name))
+
+    const achievements = [
+        { icon: <Flame size={18} />, label: 'Current Streak', value: `${user?.streak || 0} days`, max: 'Current Status' },
+        { icon: <Zap size={18} />, label: 'Resonance Tier', value: `Lvl ${user?.level || 1}`, max: `${user?.xp || 0} Total XP` },
+        { icon: <Trophy size={18} />, label: 'Global Standing', value: user?.rankName || 'Novice', max: 'Explorer Rank' },
+        { icon: <Star size={18} />, label: 'Prestige Vault', value: `${earned.length}`, max: 'Badges Earned' },
+        { icon: <CheckCircle2 size={18} />, label: 'System Access', value: user?.role === 'admin' ? 'Root' : 'User', max: 'Identity Verified' },
+    ]
+
+    const nextLevelXp = (user?.level || 1) * 500
+    const progress = ((user?.xp || 0) % 500) / 500 * 100
 
     return (
         <div style={{ color: '#000' }}>
@@ -91,24 +105,24 @@ export default function Achievements() {
                 ) : (
                     <>
                         <div style={{ textAlign: 'center' }}>
-                            <div style={{ fontSize: '48px', fontWeight: 950, letterSpacing: '-2px', color: '#000', lineHeight: 1 }}>12</div>
+                            <div style={{ fontSize: '48px', fontWeight: 950, letterSpacing: '-2px', color: '#000', lineHeight: 1 }}>{user?.level || 1}</div>
                             <div style={{ fontSize: '11px', color: 'rgba(0,0,0,0.4)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', marginTop: '4px' }}>Explorer Level</div>
                         </div>
                         <div style={{ flex: 1 }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '13px', fontWeight: 900 }}>
-                                <span style={{ color: '#000' }}>2,450 XP</span>
-                                <span style={{ color: 'rgba(0,0,0,0.4)' }}>3,000 XP (Target)</span>
+                                <span style={{ color: '#000' }}>{(user?.xp || 0).toLocaleString()} XP</span>
+                                <span style={{ color: 'rgba(0,0,0,0.4)' }}>{nextLevelXp.toLocaleString()} XP (Target)</span>
                             </div>
                             <div style={{ height: '10px', background: 'rgba(0,0,0,0.04)', borderRadius: '99px', overflow: 'hidden' }}>
-                                <div style={{ width: '81.6%', height: '100%', background: '#000', borderRadius: '99px', transition: 'width 1s cubic-bezier(0.4, 0, 0.2, 1)' }} />
+                                <div style={{ width: `${progress}%`, height: '100%', background: '#000', borderRadius: '99px', transition: 'width 1s cubic-bezier(0.4, 0, 0.2, 1)' }} />
                             </div>
-                            <div style={{ fontSize: '12px', color: 'rgba(0,0,0,0.3)', marginTop: '8px', fontWeight: 700 }}>Next tier unlock: Level 13 (+550 XP remaining)</div>
+                            <div style={{ fontSize: '12px', color: 'rgba(0,0,0,0.3)', marginTop: '8px', fontWeight: 700 }}>Next tier unlock: Level {(user?.level || 1) + 1} (+{nextLevelXp - (user?.xp || 0)} XP remaining)</div>
                         </div>
                         <div style={{ display: 'flex', gap: '32px' }}>
                             {[
-                                { label: 'Cumulative XP', value: '2,450' },
-                                { label: 'Weekly Growth', value: '+340' },
-                                { label: 'Global Standing', value: '#284' },
+                                { label: 'Cumulative XP', value: (user?.xp || 0).toLocaleString() },
+                                { label: 'Streak Status', value: `${user?.streak || 0}d` },
+                                { label: 'Identity Status', value: user?.role?.toUpperCase() || 'USER' },
                             ].map(stat => (
                                 <div key={stat.label} style={{ textAlign: 'center' }}>
                                     <div style={{ fontWeight: 900, fontSize: '20px' }}>{stat.value}</div>
@@ -129,7 +143,7 @@ export default function Achievements() {
                 {loading ? (
                     [...Array(4)].map((_, i) => <Skeleton.Base key={i} className="h-60 rounded-[24px]" />)
                 ) : (
-                    earned.map(badge => (
+                    earned.length > 0 ? earned.map(badge => (
                         <div key={badge.id} style={{
                             padding: '32px 24px',
                             background: 'rgba(255,255,255,0.7)',
@@ -161,7 +175,13 @@ export default function Achievements() {
                             </div>
                             <CheckCircle2 size={16} fill="#10b981" color="#fff" style={{ position: 'absolute', top: '16px', right: '16px' }} />
                         </div>
-                    ))
+                    )) : (
+                        <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '60px', background: 'rgba(0,0,0,0.02)', borderRadius: '24px', border: '1px dashed rgba(0,0,0,0.1)' }}>
+                            <Lock size={40} style={{ color: 'rgba(0,0,0,0.1)', marginBottom: '16px' }} />
+                            <div style={{ fontWeight: 900, color: 'rgba(0,0,0,0.2)' }}>PRESTIGE VAULT EMPTY</div>
+                            <div style={{ fontSize: '12px', color: 'rgba(0,0,0,0.3)', fontWeight: 700, marginTop: '4px' }}>Complete challenges to unlock badges</div>
+                        </div>
+                    )
                 )}
             </div>
 

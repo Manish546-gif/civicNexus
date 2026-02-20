@@ -50,7 +50,7 @@ export default function GameRoom() {
     const fetchHistory = async () => {
         try {
             const token = localStorage.getItem('token')
-            const res = await axios.get(`http://localhost:5001/api/chat/history/${id}`, {
+            const res = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/chat/history/${id}`, {
                 headers: { Authorization: `Bearer ${token}` }
             })
             const formatted = res.data.map(m => ({
@@ -67,7 +67,7 @@ export default function GameRoom() {
     useEffect(() => {
         const fetchQuestions = async () => {
             try {
-                const res = await axios.get(`http://localhost:5001/api/games/questions?category=${getCategory(id)}`)
+                const res = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/games/questions?category=${getCategory(id)}`)
                 setQuestions(res.data)
             } catch (err) {
                 console.error('Failed to fetch questions', err)
@@ -79,7 +79,7 @@ export default function GameRoom() {
         fetchHistory()
 
         // Socket setup
-        socketRef.current = io('http://localhost:5001', {
+        socketRef.current = io(import.meta.env.VITE_API_BASE_URL, {
             transports: ['websocket'],
             forceNew: true
         })
@@ -132,7 +132,7 @@ export default function GameRoom() {
             // Save XP
             const xpEarned = score * 10
             try {
-                await axios.post('http://localhost:5001/api/games/complete', { xpEarned })
+                await axios.post(`${import.meta.env.VITE_API_BASE_URL}/api/games/complete`, { xpEarned })
                 await refreshUser()
             } catch (err) {
                 console.error('Failed to save XP', err)

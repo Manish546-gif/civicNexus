@@ -28,7 +28,7 @@ export default function Chat() {
     useEffect(() => {
         const fetchMembers = async () => {
             try {
-                const res = await axios.get('http://localhost:5001/api/auth/members')
+                const res = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/auth/members`)
                 setMembers(res.data)
             } catch (err) {
                 console.error('Failed to fetch members', err)
@@ -38,7 +38,7 @@ export default function Chat() {
         }
         fetchMembers()
 
-        socketRef.current = io('http://localhost:5001', {
+        socketRef.current = io(import.meta.env.VITE_API_BASE_URL, {
             transports: ['websocket'],
             forceNew: true
         })
@@ -79,7 +79,7 @@ export default function Chat() {
     const fetchHistory = async (roomId) => {
         try {
             const token = localStorage.getItem('token')
-            const res = await axios.get(`http://localhost:5001/api/chat/history/${roomId}`, {
+            const res = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/chat/history/${roomId}`, {
                 headers: { Authorization: `Bearer ${token}` }
             })
             const formatted = res.data.map(m => ({

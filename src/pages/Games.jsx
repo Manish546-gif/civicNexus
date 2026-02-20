@@ -29,7 +29,7 @@ export default function Games() {
 
     const fetchLobbies = async () => {
         try {
-            const res = await axios.get('http://localhost:5001/api/games/lobbies')
+            const res = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/games/lobbies`)
             setLobbies(res.data)
         } catch (err) {
             console.error('Failed to fetch lobbies', err)
@@ -44,15 +44,15 @@ export default function Games() {
 
     const handleCreateLobby = async () => {
         try {
-            const res = await axios.post('http://localhost:5001/api/games/lobbies', {
+            const res = await axios.post(`${import.meta.env.VITE_API_BASE_URL}/api/games/lobbies`, {
                 name: newLobby.name || `${user.name}'s Arena`,
                 category: newLobby.category,
-                private: newLobby.private
+                private: newLobby.private,
+                maxPlayers: newLobby.capacity
             })
             setShowCreate(false)
             fetchLobbies()
-            // Optionally navigate directly to the new room
-            navigate(`/games/${res.data.id || res.data._id}`)
+            navigate(`/games/${res.data._id}`)
         } catch (err) {
             console.error('Failed to create lobby', err)
         }
@@ -161,6 +161,17 @@ export default function Games() {
                                 <option value="Mixed">Mixed</option>
                             </select>
                         </div>
+                        <div>
+                            <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: 'rgba(0,0,0,0.4)', letterSpacing: '0.08em', marginBottom: '8px', textTransform: 'uppercase' }}>Client Capacity</label>
+                            <input
+                                type="number"
+                                min="2"
+                                max="12"
+                                value={newLobby.capacity}
+                                onChange={e => setNewLobby({ ...newLobby, capacity: parseInt(e.target.value) })}
+                                style={{ width: '100%', padding: '14px 18px', background: 'rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.05)', borderRadius: '12px', color: '#000', fontSize: '14px', boxSizing: 'border-box', outline: 'none', fontWeight: 800 }}
+                            />
+                        </div>
                     </div>
                     <div style={{ display: 'flex', gap: '12px' }}>
                         <button onClick={handleCreateLobby} style={{ padding: '12px 24px', background: '#000', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 800, cursor: 'pointer', fontSize: '14px' }}>
@@ -242,8 +253,8 @@ export default function Games() {
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '24px', flexShrink: 0 }}>
                                 <div style={{ textAlign: 'right' }}>
-                                    <div style={{ fontSize: '15px', fontWeight: 900 }}>{server.players}</div>
-                                    <div style={{ fontSize: '10px', color: 'rgba(0,0,0,0.3)', fontWeight: 800, textTransform: 'uppercase' }}>In Lobby</div>
+                                    <div style={{ fontSize: '15px', fontWeight: 950 }}>{server.currentPlayers || 0} / {server.maxPlayers || 6}</div>
+                                    <div style={{ fontSize: '10px', color: 'rgba(0,0,0,0.3)', fontWeight: 800, textTransform: 'uppercase' }}>Occupancy</div>
                                 </div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                     <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: statusColor[server.status] || '#000' }} />
@@ -251,18 +262,18 @@ export default function Games() {
                                 </div>
                                 <button
                                     onClick={() => navigate(`/games/${server._id}`)}
-                                    disabled={server.status === 'Full' || server.status === 'In Progress'}
+                                    disabled={server.currentPlayers >= server.maxPlayers || server.status === 'In Progress'}
                                     style={{
                                         padding: '10px 24px', borderRadius: '12px',
-                                        background: server.status === 'Waiting' ? '#000' : 'rgba(0,0,0,0.05)',
-                                        color: server.status === 'Waiting' ? 'white' : 'rgba(0,0,0,0.3)',
+                                        background: (server.currentPlayers < server.maxPlayers && server.status === 'Waiting') ? '#000' : 'rgba(0,0,0,0.05)',
+                                        color: (server.currentPlayers < server.maxPlayers && server.status === 'Waiting') ? 'white' : 'rgba(0,0,0,0.3)',
                                         border: 'none', fontWeight: 800, fontSize: '13px',
-                                        cursor: server.status === 'Waiting' ? 'pointer' : 'not-allowed',
+                                        cursor: (server.currentPlayers < server.maxPlayers && server.status === 'Waiting') ? 'pointer' : 'not-allowed',
                                         transition: 'all 0.2s',
                                         minWidth: '80px'
                                     }}
                                 >
-                                    {server.status === 'Waiting' ? 'Join Match' : server.status}
+                                    {(server.currentPlayers >= server.maxPlayers) ? 'FULL' : (server.status === 'Waiting' ? 'Join Match' : server.status)}
                                 </button>
                             </div>
                         </div>

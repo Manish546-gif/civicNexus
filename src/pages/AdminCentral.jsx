@@ -53,8 +53,12 @@ export default function AdminCentral() {
     const [liveUsers, setLiveUsers] = useState(0)
     const [users, setUsers] = useState([])
     const [loading, setLoading] = useState(true)
-    const [activeSection, setActiveSection] = useState('DASHBOARD')
+    const [activeSection, setActiveSection] = useState('USERS')
     const [stats, setStats] = useState({ uptime: 0, memory: 0 })
+    const [liveActivity, setLiveActivity] = useState([])
+    const [activeOverview, setActiveOverview] = useState({ communities: [], lobbies: [] })
+    const [selectedUser, setSelectedUser] = useState(null)
+    const [showTelemetry, setShowTelemetry] = useState(false)
 
     const containerRef = useRef(null)
     const socketRef = useRef(null)
@@ -64,12 +68,16 @@ export default function AdminCentral() {
     const fetchData = async () => {
         setLoading(true)
         try {
-            const [usersRes, statsRes] = await Promise.all([
-                axios.get('http://localhost:5001/api/admin/users'),
-                axios.get('http://localhost:5001/api/admin/system-stats')
+            const [usersRes, statsRes, activityRes, overviewRes] = await Promise.all([
+                axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/admin/users`),
+                axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/admin/system-stats`),
+                axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/admin/live-activity`),
+                axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/admin/active-overview`)
             ])
             setUsers(usersRes.data)
             setStats(statsRes.data)
+            setLiveActivity(activityRes.data)
+            setActiveOverview(overviewRes.data)
         } catch (err) {
             console.error('Terminal sync interrupted')
             // Fallback for demo
@@ -86,9 +94,17 @@ export default function AdminCentral() {
     useEffect(() => {
         fetchData()
 
-        socketRef.current = io('http://localhost:5001')
+        socketRef.current = io(import.meta.env.VITE_API_BASE_URL)
         socketRef.current.on('stats_update', (data) => {
             setLiveUsers(data.liveUsers)
+        })
+
+        socketRef.current.on('user_status_change', (data) => {
+            setUsers(prev => prev.map(u =>
+                u._id === data.userId
+                    ? { ...u, currentActivity: data.activity }
+                    : u
+            ))
         })
 
         const ctx = gsap.context(() => {
@@ -97,15 +113,26 @@ export default function AdminCentral() {
             })
         }, containerRef)
 
+        const pollInterval = setInterval(() => {
+            Promise.all([
+                axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/admin/live-activity`),
+                axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/admin/active-overview`)
+            ]).then(([act, over]) => {
+                setLiveActivity(act.data)
+                setActiveOverview(over.data)
+            }).catch(err => console.error('Pulse sync failed'))
+        }, 5000);
+
         return () => {
             socketRef.current?.disconnect()
+            clearInterval(pollInterval)
             ctx.revert()
         }
     }, [])
 
     const toggleBlock = async (id) => {
         try {
-            await axios.patch(`http://localhost:5001/api/admin/users/${id}/block`)
+            await axios.patch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/users/${id}/block`)
             fetchData()
         } catch (err) {
             setUsers(users.map(u => u._id === id ? { ...u, isBlocked: !u.isBlocked } : u))
@@ -225,8 +252,9 @@ export default function AdminCentral() {
                             <thead>
                                 <tr style={{ textAlign: 'left', color: 'rgba(255,255,255,0.3)', fontSize: '11px', fontWeight: 900, letterSpacing: '0.1em' }}>
                                     <th style={{ padding: '16px 20px' }}>IDENTIFIER</th>
-                                    <th style={{ padding: '16px 20px' }}>PROTOCOL STATUS</th>
-                                    <th style section={{ padding: '16px 20px' }}>CLEARANCE ROLE</th>
+                                    <th style={{ padding: '16px 20px' }}>STATUS</th>
+                                    <th style={{ padding: '16px 20px' }}>ACCESS CONTROL</th>
+                                    <th style={{ padding: '16px 20px' }}>CLEARANCE</th>
                                     <th style={{ padding: '16px 20px' }}>RESONANCE</th>
                                     <th style={{ padding: '16px 20px', textAlign: 'right' }}>COMMANDS</th>
                                 </tr>
@@ -237,6 +265,19 @@ export default function AdminCentral() {
                                         <td style={{ padding: '20px', borderRadius: '12px 0 0 12px' }}>
                                             <div style={{ fontWeight: 800 }}>{u.name}</div>
                                             <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.3)' }}>{u.email}</div>
+                                        </td>
+                                        <td style={{ padding: '20px' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                <div style={{
+                                                    width: '8px', height: '8px', borderRadius: '50%',
+                                                    background: u.currentActivity !== 'Offline' ? '#10b981' : 'rgba(255,255,255,0.1)',
+                                                    boxShadow: u.currentActivity !== 'Offline' ? '0 0 10px #10b981' : 'none',
+                                                    animation: u.currentActivity !== 'Offline' ? 'pulse 2s infinite' : 'none'
+                                                }} />
+                                                <span style={{ fontSize: '11px', fontWeight: 800, color: u.currentActivity !== 'Offline' ? '#10b981' : 'rgba(255,255,255,0.3)' }}>
+                                                    {u.currentActivity !== 'Offline' ? 'ONLINE' : 'OFFLINE'}
+                                                </span>
+                                            </div>
                                         </td>
                                         <td style={{ padding: '20px' }}>
                                             <span style={{
@@ -256,11 +297,15 @@ export default function AdminCentral() {
                                         </td>
                                         <td style={{ padding: '20px', borderRadius: '0 12px 12px 0', textAlign: 'right' }}>
                                             <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                                                <button
+                                                    onClick={() => { setSelectedUser(u); setShowTelemetry(true); }}
+                                                    style={{ padding: '10px', borderRadius: '10px', background: 'rgba(255,255,255,0.05)', border: 'none', cursor: 'pointer', color: '#facc15' }}
+                                                    title="View Telemetry"
+                                                >
+                                                    <Activity size={18} />
+                                                </button>
                                                 <button onClick={() => toggleBlock(u._id)} style={{ padding: '10px', borderRadius: '10px', background: 'rgba(255,255,255,0.05)', border: 'none', cursor: 'pointer', color: u.isBlocked ? '#10b981' : '#ef4444' }}>
                                                     <Ban size={18} />
-                                                </button>
-                                                <button style={{ padding: '10px', borderRadius: '10px', background: 'rgba(255,255,255,0.05)', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.3)' }}>
-                                                    <Trash2 size={18} />
                                                 </button>
                                             </div>
                                         </td>
@@ -275,10 +320,10 @@ export default function AdminCentral() {
             {activeSection === 'DASHBOARD' && (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px' }}>
                     {[
-                        { label: 'Network Uptime', value: (stats.uptime / 60).toFixed(0) + 'm', icon: ShieldCheck, trend: '+99.9%' },
-                        { label: 'Active Channels', value: '18', icon: MessageCircle, trend: 'STABLE' },
-                        { label: 'Total Resonance', value: users.reduce((acc, u) => acc + (u.xp || 0), 0), icon: Zap, trend: '+4.2%' },
-                        { label: 'Alert Protocols', value: '0', icon: AlertTriangle, trend: 'NORMAL' },
+                        { label: 'Total Identities', value: stats.totalUsers || 0, icon: Users, trend: 'DATABASE' },
+                        { label: 'Network Nodes', value: stats.totalCommunities || 0, icon: Globe, trend: 'COMMUNITIES' },
+                        { label: 'Infrastructure', value: stats.totalLobbies || 0, icon: ShieldCheck, trend: 'LOBBIES' },
+                        { label: 'Total Resonance', value: stats.totalXp || 0, icon: Zap, trend: 'XP' },
                     ].map(card => (
                         <div key={card.label} className="admin-card" style={{
                             padding: '32px 24px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)',
@@ -294,6 +339,94 @@ export default function AdminCentral() {
                             <div style={{ fontSize: '11px', fontWeight: 900, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.1em', marginTop: '4px' }}>{card.label}</div>
                         </div>
                     ))}
+                    {/* Live Activity Feed */}
+                    <div className="admin-card" style={{ gridColumn: 'span 2', background: 'rgba(255,255,255,0.02)', padding: '32px', borderRadius: '24px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                            <h3 style={{ fontSize: '18px', fontWeight: 900 }}>Live Activity Pulse</h3>
+                            <span style={{ fontSize: '10px', color: '#facc15', fontWeight: 900, background: 'rgba(250,204,21,0.1)', padding: '4px 10px', borderRadius: '8px' }}>USER FLOWS</span>
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '400px', overflowY: 'auto' }}>
+                            {liveActivity.length > 0 ? liveActivity.map((act, i) => (
+                                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', background: 'rgba(255,255,255,0.03)', borderRadius: '14px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                        <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#facc15', color: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '12px' }}>
+                                            {act.user.charAt(0).toUpperCase()}
+                                        </div>
+                                        <div>
+                                            <div style={{ fontWeight: 800, fontSize: '14px' }}>{act.user}</div>
+                                            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.3)' }}>ID: {act.socketId.slice(-6)}</div>
+                                        </div>
+                                    </div>
+                                    <div style={{ textAlign: 'right' }}>
+                                        <div style={{ fontSize: '11px', fontWeight: 900, color: '#facc15' }}>NODE: {act.room.toUpperCase()}</div>
+                                        <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.3)' }}>{new Date(act.timestamp).toLocaleTimeString()}</div>
+                                    </div>
+                                </div>
+                            )) : (
+                                <div style={{ padding: '40px', textAlign: 'center', color: 'rgba(255,255,255,0.2)', fontSize: '14px', fontWeight: 600 }}>
+                                    NO SIGNAL DETECTED FROM REMOTE NODES
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Infrastructure Overview */}
+                    <div style={{ gridColumn: 'span 2', display: 'grid', gridTemplateRows: '1fr 1fr', gap: '20px' }}>
+                        {/* Communities */}
+                        <div className="admin-card" style={{ background: 'rgba(255,255,255,0.02)', padding: '24px', borderRadius: '24px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
+                                <h4 style={{ fontSize: '14px', fontWeight: 900 }}>Active Communities</h4>
+                                <Globe size={16} color="rgba(255,255,255,0.2)" />
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '180px', overflowY: 'auto' }}>
+                                {activeOverview.communities.map((c, i) => (
+                                    <div key={i} style={{ display: 'flex', flexDirection: 'column', padding: '10px 16px', background: 'rgba(255,255,255,0.02)', borderRadius: '10px', gap: '4px' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                            <div style={{ fontSize: '13px', fontWeight: 700 }}>{c.emoji} {c.name}</div>
+                                            <div style={{ fontSize: '11px', fontWeight: 900, color: c.activeUsers?.length > 0 ? '#10b981' : 'rgba(255,255,255,0.2)' }}>
+                                                {c.activeUsers?.length || 0} LIVE
+                                            </div>
+                                        </div>
+                                        {c.activeUsers?.length > 0 && (
+                                            <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>
+                                                {c.activeUsers.map(u => u.user).join(', ')}
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Lobbies */}
+                        <div className="admin-card" style={{ background: 'rgba(255,255,255,0.02)', padding: '24px', borderRadius: '24px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
+                                <h4 style={{ fontSize: '14px', fontWeight: 900 }}>Active Game Lobbies</h4>
+                                <ShieldCheck size={16} color="rgba(255,255,255,0.2)" />
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '180px', overflowY: 'auto' }}>
+                                {activeOverview.lobbies.length > 0 ? activeOverview.lobbies.map((l, i) => (
+                                    <div key={i} style={{ display: 'flex', flexDirection: 'column', padding: '10px 16px', background: 'rgba(255,255,255,0.02)', borderRadius: '10px', gap: '4px' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                            <div>
+                                                <div style={{ fontSize: '13px', fontWeight: 700 }}>{l.name}</div>
+                                                <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.3)' }}>HOST: {l.host} | CODE: {l.code}</div>
+                                            </div>
+                                            <div style={{ fontSize: '11px', fontWeight: 900, color: l.activeUsers?.length > 0 ? '#facc15' : 'rgba(255,255,255,0.2)' }}>
+                                                {l.activeUsers?.length || 0} IN ROOM
+                                            </div>
+                                        </div>
+                                        {l.activeUsers?.length > 0 && (
+                                            <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>
+                                                {l.activeUsers.map(u => u.user).join(', ')}
+                                            </div>
+                                        )}
+                                    </div>
+                                )) : (
+                                    <div style={{ textAlign: 'center', padding: '20px', fontSize: '11px', color: 'rgba(255,255,255,0.2)' }}>NO ACTIVE LOBBIES</div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
                     <div className="admin-card" style={{ gridColumn: 'span 4' }}>
                         <Analytics />
                     </div>
@@ -303,6 +436,84 @@ export default function AdminCentral() {
             {activeSection === 'ANALYTICS' && (
                 <div className="admin-card" style={{ background: 'rgba(255,255,255,0.01)', padding: '40px', borderRadius: '32px', border: '1px solid rgba(255,255,255,0.05)' }}>
                     <Analytics />
+                </div>
+            )}
+
+            {/* Telemetry Modal */}
+            {showTelemetry && selectedUser && (
+                <div style={{
+                    position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)',
+                    backdropFilter: 'blur(12px)', zIndex: 100,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px'
+                }}>
+                    <div className="admin-card" style={{
+                        width: '100%', maxWidth: '600px', background: '#0a0a0a',
+                        border: '1px solid rgba(255,255,255,0.1)', borderRadius: '32px',
+                        padding: '40px', position: 'relative', boxShadow: '0 32px 64px rgba(0,0,0,0.5)'
+                    }}>
+                        <button
+                            onClick={() => setShowTelemetry(false)}
+                            style={{ position: 'absolute', top: '24px', right: '24px', background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)', cursor: 'pointer' }}
+                        >
+                            <Trash2 size={24} />
+                        </button>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '20px', marginBottom: '32px' }}>
+                            <div style={{
+                                width: '64px', height: '64px', borderRadius: '20px', background: '#facc15',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#000',
+                                fontWeight: 950, fontSize: '24px'
+                            }}>
+                                {selectedUser.name.charAt(0)}
+                            </div>
+                            <div>
+                                <h2 style={{ fontSize: '24px', fontWeight: 950, margin: 0 }}>{selectedUser.name}</h2>
+                                <div style={{ fontSize: '14px', color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>{selectedUser.email}</div>
+                            </div>
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '32px' }}>
+                            <div style={{ padding: '20px', background: 'rgba(255,255,255,0.03)', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                                <div style={{ fontSize: '11px', fontWeight: 900, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.1em', marginBottom: '8px' }}>CURRENT NODE</div>
+                                <div style={{ fontSize: '18px', fontWeight: 800, color: selectedUser.currentActivity !== 'Offline' ? '#10b981' : 'rgba(255,255,255,0.5)' }}>
+                                    {selectedUser.currentActivity || 'Offline'}
+                                </div>
+                            </div>
+                            <div style={{ padding: '20px', background: 'rgba(255,255,255,0.03)', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                                <div style={{ fontSize: '11px', fontWeight: 900, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.1em', marginBottom: '8px' }}>RESONANCE TOTAL</div>
+                                <div style={{ fontSize: '18px', fontWeight: 800, color: '#facc15' }}>{selectedUser.xp} XP</div>
+                            </div>
+                        </div>
+
+                        <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <h4 style={{ fontSize: '14px', fontWeight: 900 }}>Activity History Protocol</h4>
+                            <RefreshCw size={16} color="rgba(255,255,255,0.2)" />
+                        </div>
+
+                        <div style={{
+                            maxHeight: '200px', overflowY: 'auto', paddingRight: '12px',
+                            display: 'flex', flexDirection: 'column', gap: '12px'
+                        }}>
+                            {selectedUser.activityHistory && selectedUser.activityHistory.length > 0 ? (
+                                [...selectedUser.activityHistory].reverse().map((h, i) => (
+                                    <div key={i} style={{
+                                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                        padding: '14px 20px', background: 'rgba(255,255,255,0.02)',
+                                        borderRadius: '14px', border: '1px solid rgba(255,255,255,0.03)'
+                                    }}>
+                                        <div style={{ fontSize: '13px', fontWeight: 600 }}>{h.description}</div>
+                                        <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.3)', fontWeight: 700 }}>
+                                            {new Date(h.timestamp).toLocaleString()}
+                                        </div>
+                                    </div>
+                                ))
+                            ) : (
+                                <div style={{ padding: '20px', textAlign: 'center', color: 'rgba(255,255,255,0.2)', fontSize: '13px' }}>
+                                    NO HISTORICAL DATA DETECTED
+                                </div>
+                            )}
+                        </div>
+                    </div>
                 </div>
             )}
 

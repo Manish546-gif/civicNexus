@@ -18,6 +18,7 @@ import Challenges from './pages/Challenges'
 import ChallengeDetail from './pages/ChallengeDetail'
 import Leaderboard from './pages/Leaderboard'
 import Achievements from './pages/Achievements'
+import Feed from './pages/Feed'
 import AdminLayout from './components/AdminLayout'
 import AdminCentral from './pages/AdminCentral'
 import { ProtectedRoute } from './components/ProtectedRoute'
@@ -66,6 +67,7 @@ function AppRoutes() {
             <Route path="/games/:id" element={<GameRoom />} />
             <Route path="/challenges" element={<Challenges />} />
             <Route path="/challenges/:id" element={<ChallengeDetail />} />
+            <Route path="/feed" element={<Feed />} />
             <Route path="/leaderboard" element={<Leaderboard />} />
             <Route path="/achievements" element={<Achievements />} />
           </Route>

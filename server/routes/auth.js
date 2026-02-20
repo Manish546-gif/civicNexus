@@ -23,7 +23,7 @@ router.post('/google', async (req, res) => {
         });
         const { name, email, picture } = ticket.getPayload();
 
-        let user = await User.findOne({ email });
+        let user = await User.findOne({ email: email.toLowerCase() });
 
         if (!user) {
             // Create user for first-time Google sign-up
@@ -52,7 +52,7 @@ router.post('/google', async (req, res) => {
 router.post('/register', async (req, res) => {
     const { name, username, email, password, role } = req.body;
     try {
-        const userExists = await User.findOne({ email });
+        const userExists = await User.findOne({ email: email.toLowerCase() });
         if (userExists) return res.status(400).json({ message: 'User already exists.' });
 
         if (username) {
@@ -79,7 +79,7 @@ router.post('/register', async (req, res) => {
 router.post('/login', async (req, res) => {
     const { email, password } = req.body;
     try {
-        const user = await User.findOne({ email });
+        const user = await User.findOne({ email: email.toLowerCase() });
         if (!user) return res.status(400).json({ message: 'User not found' });
         if (user.isBlocked) return res.status(403).json({ message: 'Account blocked' });
 
@@ -119,12 +119,15 @@ router.get('/profile', async (req, res) => {
     }
 });
 
-router.get('/members', async (req, res) => {
+router.get('/leaderboard', async (req, res) => {
     try {
-        const users = await User.find({ role: 'user' }).select('name avatar xp');
+        const users = await User.find({ role: 'user' })
+            .select('name username xp streak badges')
+            .sort({ xp: -1 })
+            .limit(50);
         res.json(users);
     } catch (err) {
-        res.status(500).json({ message: 'Server error' });
+        res.status(500).json({ message: 'Server error fetching leaderboard' });
     }
 });
 

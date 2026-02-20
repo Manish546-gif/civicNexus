@@ -1,9 +1,12 @@
+import { useState, useEffect } from 'react'
+import axios from 'axios'
 import { Link } from 'react-router-dom'
 import {
     Zap, Flame, Trophy, Users, MessageCircle, Star,
     TrendingUp, CheckCircle2, Clock, ArrowRight, Gamepad2, BarChart3, Plus
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
+import Skeleton from '../components/Skeleton'
 
 const recentChallenges = [
     { title: 'Binary Search Tree', category: 'Coding', xp: 50, status: 'completed', time: '2h ago' },
@@ -29,13 +32,43 @@ const topCommunities = [
 
 export default function Dashboard() {
     const { user } = useAuth()
+    const [communities, setCommunities] = useState([])
+    const [challenges, setChallenges] = useState([])
+    const [loading, setLoading] = useState(true)
+
+    useEffect(() => {
+        const fetchDashboardData = async () => {
+            try {
+                const [commRes, chalRes] = await Promise.all([
+                    axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/chat/communities`),
+                    axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/challenges`)
+                ])
+                setCommunities(commRes.data)
+                setChallenges(chalRes.data)
+            } catch (err) {
+                console.error('Failed to sync dashboard data')
+            } finally {
+                setLoading(false)
+            }
+        }
+        fetchDashboardData()
+    }, [])
 
     const statsCards = [
         { icon: Zap, label: 'XP Points', value: (user?.xp || 0).toLocaleString(), change: `Lvl ${user?.level || 1}`, color: '#000' },
         { icon: Flame, label: 'Day Streak', value: `${user?.streak || 0} days`, change: 'Current active', color: '#f97316' },
         { icon: Trophy, label: 'Professional Rank', value: user?.rankName || 'Novice', change: 'Live status', color: '#000' },
-        { icon: Users, label: 'Member Status', value: user?.role === 'admin' ? 'Admin' : 'Citzen', change: 'Authenticated', color: '#000' },
+        { icon: Users, label: 'Member Status', value: user?.role === 'admin' ? 'Admin' : 'Explorer', change: 'Authenticated', color: '#000' },
     ]
+
+    // Use live activity history from user object
+    const liveActivity = (user?.activityHistory || []).slice().reverse().slice(0, 5).map(item => ({
+        avatar: user.name.charAt(0).toUpperCase(),
+        user: 'You',
+        action: item.description,
+        time: new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        xp: item.description.includes('Joined') ? '+10 XP' : ''
+    }))
 
     return (
         <div style={{ color: '#000' }}>
@@ -145,11 +178,11 @@ export default function Dashboard() {
                             MASTER REPOSITORY <ArrowRight size={14} />
                         </Link>
                     </div>
-                    {recentChallenges.map((c, i) => (
+                    {challenges.length > 0 ? challenges.slice(0, 4).map((c, i) => (
                         <div key={i} style={{
                             display: 'flex', alignItems: 'center', gap: '20px',
                             padding: '20px 0',
-                            borderBottom: i < recentChallenges.length - 1 ? '1px solid rgba(0,0,0,0.04)' : 'none',
+                            borderBottom: i < challenges.length - 1 ? '1px solid rgba(0,0,0,0.04)' : 'none',
                         }}>
                             <div style={{
                                 width: '48px', height: '48px', borderRadius: '16px',
@@ -157,18 +190,22 @@ export default function Dashboard() {
                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                                 flexShrink: 0, boxShadow: '0 4px 8px rgba(0,0,0,0.01)'
                             }}>
-                                {c.status === 'completed' ? <CheckCircle2 size={24} color="#10b981" /> : c.status === 'in-progress' ? <Clock size={24} color="#f97316" /> : <Zap size={24} color="rgba(0,0,0,0.1)" />}
+                                <Zap size={24} color="#facc15" />
                             </div>
                             <div style={{ flex: 1, minWidth: 0 }}>
                                 <div style={{ fontWeight: 800, fontSize: '16px', marginBottom: '4px', color: '#000' }}>{c.title}</div>
-                                <div style={{ fontSize: '13px', color: 'rgba(0,0,0,0.4)', fontWeight: 600 }}>{c.category} · LAST ACTION: {c.time}</div>
+                                <div style={{ fontSize: '13px', color: 'rgba(0,0,0,0.4)', fontWeight: 600 }}>{c.type || 'CHALLENGE'} · REWARD XP</div>
                             </div>
                             <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                                <div style={{ fontSize: '16px', fontWeight: 950, color: c.status === 'completed' ? '#000' : 'rgba(0,0,0,0.2)' }}>+{c.xp} XP</div>
-                                <div style={{ fontSize: '10px', color: 'rgba(0,0,0,0.3)', textTransform: 'uppercase', fontWeight: 900, letterSpacing: '0.05em' }}>{c.status}</div>
+                                <div style={{ fontSize: '16px', fontWeight: 950, color: '#000' }}>+{c.rewardXp} XP</div>
+                                <div style={{ fontSize: '10px', color: 'rgba(0,0,0,0.3)', textTransform: 'uppercase', fontWeight: 900, letterSpacing: '0.05em' }}>OPEN</div>
                             </div>
                         </div>
-                    ))}
+                    )) : (
+                        <div style={{ textAlign: 'center', padding: '40px 0', color: 'rgba(0,0,0,0.2)', fontWeight: 800 }}>
+                            NO ACTIVE MISSIONS
+                        </div>
+                    )}
                     <Link to="/challenges" style={{
                         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px',
                         marginTop: '32px', padding: '16px',
@@ -180,15 +217,15 @@ export default function Dashboard() {
                     </Link>
                 </div>
 
-                {/* Network Feed */}
+                {/* Local Activity History */}
                 <div style={{
                     background: 'rgba(255,255,255,0.7)', border: '1px solid rgba(0,0,0,0.05)',
                     borderRadius: '28px', padding: '32px', backdropFilter: 'blur(20px)',
                     boxShadow: '0 8px 32px rgba(0,0,0,0.02)'
                 }}>
-                    <h3 style={{ fontWeight: 950, fontSize: '20px', marginBottom: '32px', letterSpacing: '-0.5px' }}>Network Feed</h3>
+                    <h3 style={{ fontWeight: 950, fontSize: '20px', marginBottom: '32px', letterSpacing: '-0.5px' }}>Your Activity History</h3>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                        {activityFeed.map((item, i) => (
+                        {liveActivity.length > 0 ? liveActivity.map((item, i) => (
                             <div key={i} style={{
                                 display: 'flex', gap: '16px',
                             }}>
@@ -209,7 +246,11 @@ export default function Dashboard() {
                                     </div>
                                 </div>
                             </div>
-                        ))}
+                        )) : (
+                            <div style={{ textAlign: 'center', padding: '40px 0', color: 'rgba(0,0,0,0.2)', fontWeight: 800 }}>
+                                NO RECENT PROTOCOLS
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
@@ -228,33 +269,38 @@ export default function Dashboard() {
                             GLOBAL INDEX <ArrowRight size={14} />
                         </Link>
                     </div>
-                    {topCommunities.map((c, i) => (
-                        <Link key={i} to={`/communities/${i + 1}`} style={{ textDecoration: 'none', color: '#000' }}>
+                    {communities.slice(0, 4).map((c, i) => (
+                        <Link key={i} to={`/communities/${c._id}`} style={{ textDecoration: 'none', color: '#000' }}>
                             <div style={{
                                 display: 'flex', alignItems: 'center', gap: '20px',
                                 padding: '16px 0',
-                                borderBottom: i < topCommunities.length - 1 ? '1px solid rgba(0,0,0,0.04)' : 'none',
+                                borderBottom: i < communities.length - 1 ? '1px solid rgba(0,0,0,0.04)' : 'none',
                                 transition: 'transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
                             }}
                                 onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
                                 onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
                             >
-                                <span style={{ fontSize: '32px' }}>{c.emoji}</span>
+                                <span style={{ fontSize: '24px' }}>🌐</span>
                                 <div style={{ flex: 1 }}>
                                     <div style={{ fontWeight: 900, fontSize: '16px', color: '#000' }}>{c.name}</div>
-                                    <div style={{ fontSize: '13px', color: 'rgba(0,0,0,0.4)', fontWeight: 600 }}>{c.members} ACTIVE EXPLORERS</div>
+                                    <div style={{ fontSize: '13px', color: 'rgba(0,0,0,0.4)', fontWeight: 600 }}>LIVE COMMUNITY CLUSTER</div>
                                 </div>
                                 <span style={{
                                     fontSize: '11px', padding: '5px 12px', borderRadius: '10px',
-                                    background: c.activity === 'High' ? 'black' : 'rgba(0,0,0,0.05)',
-                                    color: c.activity === 'High' ? 'white' : 'rgba(0,0,0,0.4)',
+                                    background: 'black',
+                                    color: 'white',
                                     fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.05em'
                                 }}>
-                                    {c.activity} SYNERGY
+                                    ACTIVE SYNERGY
                                 </span>
                             </div>
                         </Link>
                     ))}
+                    {communities.length === 0 && (
+                        <div style={{ textAlign: 'center', padding: '40px 0', color: 'rgba(0,0,0,0.2)', fontWeight: 800 }}>
+                            NO SYNERGIES DETECTED
+                        </div>
+                    )}
                 </div>
 
                 {/* High-Impact Shortcuts */}

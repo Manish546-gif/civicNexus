@@ -17,8 +17,12 @@ export default function Login() {
         setLoading(true)
 
         try {
-            await login(formData.email, formData.password)
-            navigate('/dashboard')
+            const data = await login(formData.email, formData.password)
+            if (data.user.role === 'admin') {
+                navigate('/admin-terminal')
+            } else {
+                navigate('/dashboard')
+            }
         } catch (err) {
             setError(err.response?.data?.message || 'Authentication error. Please verify your credentials.')
         } finally {
@@ -30,8 +34,12 @@ export default function Login() {
         setError('')
         setLoading(true)
         try {
-            await googleLogin(credentialResponse.credential)
-            navigate('/dashboard')
+            const data = await googleLogin(credentialResponse.credential)
+            if (data.user.role === 'admin') {
+                navigate('/admin-terminal')
+            } else {
+                navigate('/dashboard')
+            }
         } catch (err) {
             setError(err.response?.data?.message || 'Google authentication failed.')
         } finally {
