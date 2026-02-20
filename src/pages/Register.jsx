@@ -14,7 +14,7 @@ export default function Register() {
     const [form, setForm] = useState({ name: '', username: '', email: '', password: '', role: '' })
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState('')
-    const { register } = useAuth()
+    const { register, googleLogin } = useAuth()
     const navigate = useNavigate()
 
     const handleSubmit = async (e) => {
@@ -134,6 +134,34 @@ export default function Register() {
                                         />
                                     </div>
                                 ))}
+                                <div style={{ margin: '32px 0 24px', borderTop: '1px solid rgba(0,0,0,0.06)', position: 'relative' }}>
+                                    <span style={{
+                                        position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+                                        background: '#fff', padding: '0 16px', fontSize: '11px', color: 'rgba(0,0,0,0.2)', fontWeight: 950,
+                                        textTransform: 'uppercase', letterSpacing: '0.1em'
+                                    }}>Or initialize instantly</span>
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'center' }}>
+                                    <GoogleLogin
+                                        onSuccess={async (credentialResponse) => {
+                                            setError('')
+                                            setLoading(true)
+                                            try {
+                                                await googleLogin(credentialResponse.credential)
+                                                navigate('/dashboard')
+                                            } catch (err) {
+                                                setError(err.response?.data?.message || 'Google registration failed.')
+                                            } finally {
+                                                setLoading(false)
+                                            }
+                                        }}
+                                        onError={() => setError('Google Authentication Failed')}
+                                        theme="outline"
+                                        size="large"
+                                        shape="pill"
+                                        width="100%"
+                                    />
+                                </div>
                             </>
                         ) : (
                             <div>
@@ -160,34 +188,6 @@ export default function Register() {
                                             {r.label}
                                         </button>
                                     ))}
-                                </div>
-                                <div style={{ margin: '32px 0 24px', borderTop: '1px solid rgba(0,0,0,0.06)', position: 'relative' }}>
-                                    <span style={{
-                                        position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
-                                        background: '#fff', padding: '0 16px', fontSize: '11px', color: 'rgba(0,0,0,0.2)', fontWeight: 950,
-                                        textTransform: 'uppercase', letterSpacing: '0.1em'
-                                    }}>Or initialize instantly</span>
-                                </div>
-                                <div style={{ display: 'flex', justifyContent: 'center' }}>
-                                    <GoogleLogin
-                                        onSuccess={async (credentialResponse) => {
-                                            setError('')
-                                            setLoading(true)
-                                            try {
-                                                await useAuth().googleLogin(credentialResponse.credential)
-                                                navigate('/dashboard')
-                                            } catch (err) {
-                                                setError(err.response?.data?.message || 'Google registration failed.')
-                                            } finally {
-                                                setLoading(false)
-                                            }
-                                        }}
-                                        onError={() => setError('Google Authentication Failed')}
-                                        theme="outline"
-                                        size="large"
-                                        shape="pill"
-                                        width="100%"
-                                    />
                                 </div>
                             </div>)}
 

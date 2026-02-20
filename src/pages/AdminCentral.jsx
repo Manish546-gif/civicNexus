@@ -65,8 +65,8 @@ export default function AdminCentral() {
         setLoading(true)
         try {
             const [usersRes, statsRes] = await Promise.all([
-                axios.get('http://localhost:5000/api/admin/users'),
-                axios.get('http://localhost:5000/api/admin/system-stats')
+                axios.get('http://localhost:5001/api/admin/users'),
+                axios.get('http://localhost:5001/api/admin/system-stats')
             ])
             setUsers(usersRes.data)
             setStats(statsRes.data)

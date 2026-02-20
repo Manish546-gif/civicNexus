@@ -19,7 +19,7 @@ export default function AdminPanel() {
         setLoading(true)
         setError('')
         try {
-            const usersRes = await axios.get('http://localhost:5000/api/admin/users')
+            const usersRes = await axios.get('http://localhost:5001/api/admin/users')
             setUsers(usersRes.data)
         } catch (err) {
             setError('System Uplink Interrupted: Operating in Simulation Mode.')
