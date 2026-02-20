@@ -1,10 +1,12 @@
-import { NavLink, useNavigate } from 'react-router-dom'
+import { NavLink, useNavigate, useLocation } from 'react-router-dom'
 import {
     LayoutDashboard, Users, MessageCircle, FileText,
     Gamepad2, Zap, Trophy, Award, BarChart3,
     User, Settings, ShieldCheck, Flame, LogOut
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
+import { io } from 'socket.io-client'
+import { useState, useEffect } from 'react'
 
 const navItems = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
@@ -20,6 +22,33 @@ const navItems = [
 export default function Sidebar() {
     const { user, logout } = useAuth()
     const navigate = useNavigate()
+    const location = useLocation()
+
+    const [unreadCount, setUnreadCount] = useState(0)
+
+    useEffect(() => {
+        const socket = io('http://localhost:5001', {
+            transports: ['websocket'],
+            forceNew: true
+        })
+
+        socket.on('new_message_notification', (data) => {
+            // Only increment if not on chat page or for a room not currently viewed
+            // Since Sidebar doesn't know the exact active channel in Chat.jsx easily,
+            // we'll at least skip if sender is the current user.
+            if (data.sender !== user?.name) {
+                setUnreadCount(prev => prev + 1)
+            }
+        })
+
+        return () => socket.disconnect()
+    }, [user?.name])
+
+    useEffect(() => {
+        if (location.pathname === '/chat') {
+            setUnreadCount(0)
+        }
+    }, [location.pathname])
 
     const handleLogout = () => {
         logout()
@@ -81,7 +110,17 @@ export default function Sidebar() {
                         })}
                     >
                         <Icon size={18} />
-                        {label}
+                        <span style={{ flex: 1 }}>{label}</span>
+                        {label === 'Chat' && unreadCount > 0 && (
+                            <div style={{
+                                width: '18px', height: '18px', borderRadius: '50%',
+                                background: '#ef4444', color: 'white',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                fontSize: '10px', fontWeight: 900, boxShadow: '0 2px 8px rgba(239, 68, 68, 0.4)'
+                            }}>
+                                {unreadCount > 9 ? '9+' : unreadCount}
+                            </div>
+                        )}
                     </NavLink>
                 ))}
             </nav>
@@ -107,8 +146,7 @@ export default function Sidebar() {
                                 {user?.name || 'Explorer'}
                             </div>
                             <div style={{ fontSize: '10px', color: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981' }} />
-                                Level {Math.floor((user?.xp || 0) / 500) + 1}
+                                Level {user?.level || 1} · {user?.rankName || 'Novice'}
                             </div>
                         </div>
                     </div>

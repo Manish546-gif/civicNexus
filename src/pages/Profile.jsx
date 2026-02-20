@@ -100,12 +100,12 @@ export default function Profile() {
                             {/* Stats Grid */}
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', minWidth: '340px' }}>
                                 {[
-                                    { icon: Zap, label: 'Lifetime XP', value: user?.xp?.toLocaleString() || '0' },
+                                    { icon: Zap, label: 'Lifetime XP', value: (user?.xp || 0).toLocaleString() },
                                     { icon: Flame, label: 'Streak', value: `${user?.streak || 0}D` },
-                                    { icon: Trophy, label: 'Global Rank', value: '#---' },
-                                    { icon: Users, label: 'Hubs', value: user?.hubs?.length || '0' },
+                                    { icon: Trophy, label: 'Professional Rank', value: user?.rankName || 'Novice' },
+                                    { icon: Users, label: 'Platform Role', value: user?.role === 'admin' ? 'Admin' : 'Citzen' },
                                     { icon: Star, label: 'Badges', value: user?.badges?.length || '0' },
-                                    { icon: BarChart3, label: 'Impact', value: '--' },
+                                    { icon: BarChart3, label: 'Tier Level', value: user?.level || '1' },
                                 ].map(s => (
                                     <div key={s.label} style={{ textAlign: 'center', padding: '16px', background: 'rgba(0,0,0,0.03)', borderRadius: '16px', border: '1px solid rgba(0,0,0,0.02)' }}>
                                         <s.icon size={16} style={{ color: 'rgba(0,0,0,0.3)', margin: '0 auto 6px' }} />

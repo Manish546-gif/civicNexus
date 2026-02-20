@@ -19,7 +19,7 @@ export default function AdminPanel() {
         setLoading(true)
         setError('')
         try {
-            const usersRes = await axios.get('http://localhost:5000/api/admin/users')
+            const usersRes = await axios.get('http://localhost:5001/api/admin/users')
             setUsers(usersRes.data)
         } catch (err) {
             setError('System Uplink Interrupted: Operating in Simulation Mode.')
@@ -40,7 +40,7 @@ export default function AdminPanel() {
 
     const toggleBlock = async (id) => {
         try {
-            await axios.patch(`http://localhost:5000/api/admin/users/${id}/block`)
+            await axios.patch(`http://localhost:5001/api/admin/users/${id}/block`)
             fetchData()
         } catch (err) {
             setUsers(users.map(u => u.id === id ? { ...u, isBlocked: !u.isBlocked } : u))

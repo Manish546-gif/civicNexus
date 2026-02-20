@@ -14,10 +14,23 @@ const userSchema = new mongoose.Schema({
     createdAt: { type: Date, default: Date.now }
 });
 
-userSchema.pre('save', async function (next) {
-    if (!this.isModified('password')) return next();
+userSchema.virtual('level').get(function () {
+    return Math.floor(this.xp / 500) + 1;
+});
+
+userSchema.virtual('rankName').get(function () {
+    const level = Math.floor(this.xp / 500) + 1;
+    if (level < 10) return 'Novice';
+    if (level < 30) return 'Apprentice';
+    return 'Master';
+});
+
+userSchema.set('toJSON', { virtuals: true });
+userSchema.set('toObject', { virtuals: true });
+
+userSchema.pre('save', async function () {
+    if (!this.isModified('password')) return;
     this.password = await bcrypt.hash(this.password, 10);
-    next();
 });
 
 export default mongoose.model('User', userSchema);

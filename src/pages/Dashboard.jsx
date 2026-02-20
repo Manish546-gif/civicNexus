@@ -31,10 +31,10 @@ export default function Dashboard() {
     const { user } = useAuth()
 
     const statsCards = [
-        { icon: Zap, label: 'XP Points', value: user?.xp?.toLocaleString() || '0', change: '+0 today', color: '#000' },
-        { icon: Flame, label: 'Day Streak', value: `${user?.streak || 0} days`, change: 'Personal best!', color: '#f97316' },
-        { icon: Trophy, label: 'Global Rank', value: '#---', change: 'Calculating...', color: '#000' },
-        { icon: Users, label: 'Communities', value: '5 active', change: '2 new invites', color: '#000' },
+        { icon: Zap, label: 'XP Points', value: (user?.xp || 0).toLocaleString(), change: `Lvl ${user?.level || 1}`, color: '#000' },
+        { icon: Flame, label: 'Day Streak', value: `${user?.streak || 0} days`, change: 'Current active', color: '#f97316' },
+        { icon: Trophy, label: 'Professional Rank', value: user?.rankName || 'Novice', change: 'Live status', color: '#000' },
+        { icon: Users, label: 'Member Status', value: user?.role === 'admin' ? 'Admin' : 'Citzen', change: 'Authenticated', color: '#000' },
     ]
 
     return (
@@ -46,7 +46,7 @@ export default function Dashboard() {
                         Welcome, {user?.name || 'Explorer'}
                     </h2>
                     <p style={{ color: 'rgba(0,0,0,0.4)', fontSize: '15px', fontWeight: 700 }}>
-                        Global Node ID: <span style={{ color: '#000' }}>{user?.id?.slice(-8).toUpperCase() || 'INITIALIZING'}</span> · Productivity Rating: <span style={{ color: '#10b981' }}>Top 5%</span>
+                        Global Node ID: <span style={{ color: '#000' }}>{user?.id?.slice(-8).toUpperCase() || 'INITIALIZING'}</span> · Status: <span style={{ color: '#10b981' }}>Active</span>
                     </p>
                 </div>
                 <div style={{ display: 'flex', gap: '12px' }}>
@@ -81,14 +81,14 @@ export default function Dashboard() {
                 <div style={{ flex: 1 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
                         <span style={{ fontSize: '12px', fontWeight: 900, color: 'rgba(0,0,0,0.3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Tier Expansion Progress</span>
-                        <span style={{ fontSize: '13px', color: '#000', fontWeight: 900 }}>2,450 / 3,000 XP</span>
+                        <span style={{ fontSize: '13px', color: '#000', fontWeight: 900 }}>{user?.xp % 500} / 500 XP</span>
                     </div>
                     <div style={{ height: '12px', background: 'rgba(0,0,0,0.03)', borderRadius: '99px', overflow: 'hidden' }}>
-                        <div style={{ width: '81.6%', height: '100%', background: '#000', borderRadius: '99px', transition: 'width 1s ease' }} />
+                        <div style={{ width: `${((user?.xp % 500) / 500) * 100}%`, height: '100%', background: '#000', borderRadius: '99px', transition: 'width 1s ease' }} />
                     </div>
                 </div>
                 <div style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
-                    <div style={{ fontSize: '40px', fontWeight: 950, color: '#000', lineHeight: 1 }}>81%</div>
+                    <div style={{ fontSize: '40px', fontWeight: 950, color: '#000', lineHeight: 1 }}>{Math.floor(((user?.xp % 500) / 500) * 100)}%</div>
                     <div style={{ fontSize: '11px', color: 'rgba(0,0,0,0.4)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Node Resonance</div>
                 </div>
             </div>

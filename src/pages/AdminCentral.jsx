@@ -65,8 +65,8 @@ export default function AdminCentral() {
         setLoading(true)
         try {
             const [usersRes, statsRes] = await Promise.all([
-                axios.get('http://localhost:5000/api/admin/users'),
-                axios.get('http://localhost:5000/api/admin/system-stats')
+                axios.get('http://localhost:5001/api/admin/users'),
+                axios.get('http://localhost:5001/api/admin/system-stats')
             ])
             setUsers(usersRes.data)
             setStats(statsRes.data)
@@ -86,7 +86,7 @@ export default function AdminCentral() {
     useEffect(() => {
         fetchData()
 
-        socketRef.current = io('http://localhost:5000')
+        socketRef.current = io('http://localhost:5001')
         socketRef.current.on('stats_update', (data) => {
             setLiveUsers(data.liveUsers)
         })
@@ -105,7 +105,7 @@ export default function AdminCentral() {
 
     const toggleBlock = async (id) => {
         try {
-            await axios.patch(`http://localhost:5000/api/admin/users/${id}/block`)
+            await axios.patch(`http://localhost:5001/api/admin/users/${id}/block`)
             fetchData()
         } catch (err) {
             setUsers(users.map(u => u._id === id ? { ...u, isBlocked: !u.isBlocked } : u))

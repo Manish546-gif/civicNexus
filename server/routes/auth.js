@@ -119,4 +119,13 @@ router.get('/profile', async (req, res) => {
     }
 });
 
+router.get('/members', async (req, res) => {
+    try {
+        const users = await User.find({ role: 'user' }).select('name avatar xp');
+        res.json(users);
+    } catch (err) {
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
 export default router;
